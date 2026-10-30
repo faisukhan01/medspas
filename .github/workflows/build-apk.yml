@@ -1,0 +1,151 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Auralis Med Spa — Android APK Build Pipeline
+#
+# Builds production (release-signed, installable) APKs for both Expo apps:
+#   • apps/staff-mobile   → Auralis Staff   (com.auralis.staff)
+#   • apps/patient-mobile → Auralis Patient (com.auralis.patient)
+#
+# Flow per app:  bun install → expo prebuild (android) → gradlew assembleRelease
+# The Expo template signs release builds with the generated debug keystore, so
+# the APK installs out of the box (swap in a Play keystore for store deploys).
+#
+# Triggers:
+#   • workflow_dispatch  (manual / API)  — optional GitHub Release upload
+#   • push to main       (only when apps/** or this file changes)
+# ─────────────────────────────────────────────────────────────────────────────
+name: Build Android APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Attach APKs to a GitHub Release (apk-latest)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - ".github/workflows/build-apk.yml"
+
+permissions:
+  contents: read
+
+env:
+  EXPO_NO_TELEMETRY: "1"
+  # Point the apps at the deployed Auralis web API (set this repo variable to
+  # your production URL; falls back to localhost for local dev builds).
+  EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'http://localhost:3000' }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }} APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: staff-mobile
+            label: staff
+          - app: patient-mobile
+            label: patient
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Expo prebuild (android)
+        run: bunx expo prebuild --platform android --no-install --clean
+
+      - name: Tune Gradle for CI runners
+        run: |
+          sed -i 's/-Xmx2048m/-Xmx4096m/' android/gradle.properties || true
+          printf '\norg.gradle.workers.max=2\norg.gradle.parallel=true\norg.gradle.caching=true\n' >> android/gradle.properties
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "dist/auralis-${{ matrix.label }}-v1.0.0.apk"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auralis-${{ matrix.label }}-apk
+          path: apps/${{ matrix.app }}/dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.create_release == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download built APKs
+        uses: actions/download-artifact@v4
+        with:
+          path: apks
+          merge-multiple: true
+
+      - name: Remove previous apk-latest release (idempotent)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          git push origin :refs/tags/apk-latest || true
+
+      - name: Create / replace apk-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Auralis Mobile Apps — Latest APKs
+          body: |
+            ## 📱 Auralis Med Spa — Mobile Apps (Android)
+
+            | App | Package | File |
+            |---|---|---|
+            | **Auralis Staff** (clinic team) | `com.auralis.staff` | `auralis-staff-v1.0.0.apk` |
+            | **Auralis Patient** (clients) | `com.auralis.patient` | `auralis-patient-v1.0.0.apk` |
+
+            ### Install
+            1. Download the APK on an Android 7.0+ device
+            2. Allow *"Install unknown apps"* for your browser/file manager
+            3. Tap the APK → Install → sign in with your clinic account
+
+            > Release builds are signed with the CI debug keystore — fine for
+            > demos and internal distribution. For Google Play, upload with a
+            > production keystore.
+          files: apks/*.apk
+          make_latest: true
