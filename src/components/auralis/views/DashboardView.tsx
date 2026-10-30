@@ -38,14 +38,31 @@ export default function DashboardView() {
   const { boot, branchFilter, setView } = useApp();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<unknown>(null);
+  // Tracks which branch slice is loaded — switching branches shows the
+  // skeleton without a synchronous setState inside the effect.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
-    setData(null);
+    let cancelled = false;
     api<DashboardData>(`/api/dashboard?branchId=${branchFilter}`)
-      .then(setData)
-      .catch(setError);
+      .then((d) => {
+        if (cancelled) return;
+        setData(d);
+        setLoadedFor(branchFilter);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e);
+        setLoadedFor(branchFilter);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [branchFilter]);
 
+  if (loadedFor !== branchFilter) {
+    return <div className="p-6 pt-10"><Loading label="Crunching 30 days of clinic data" rows={6} /></div>;
+  }
   if (error) return <div className="p-6"><ErrorNote error={error} /></div>;
   if (!data) return <div className="p-6 pt-10"><Loading label="Crunching 30 days of clinic data" rows={6} /></div>;
 

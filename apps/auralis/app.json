@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Auralis",
+    "slug": "auralis",
+    "scheme": "auralis",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#0c0a09",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#171a1f"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.auralis.app"
+    },
+    "android": {
+      "package": "com.auralis.app",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#171a1f"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

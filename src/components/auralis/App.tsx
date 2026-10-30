@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useApp } from "./store";
 import { api } from "./client";
 import Landing from "./Landing";
@@ -8,19 +8,16 @@ import Login from "./Login";
 import Shell from "./Shell";
 
 export default function AuralisApp() {
-  const { stage, setStage, setBoot } = useApp();
-  const [booting, setBooting] = useState(false);
+  const { stage, setStage, setBoot, boot } = useApp();
+  // Derived: the shell shows its own loader until the bootstrap payload lands.
+  const booting = stage === "app" && !boot;
 
   // Pre-fetch bootstrap when heading into the app
   useEffect(() => {
     if (stage === "app" && !useApp.getState().boot) {
-      setBooting(true);
       api<Parameters<typeof setBoot>[0]>("/api/bootstrap")
-        .then((boot) => {
-          setBoot(boot);
-          setBooting(false);
-        })
-        .catch(() => setBooting(false));
+        .then((b) => setBoot(b))
+        .catch(() => {});
     }
   }, [stage, setBoot]);
 

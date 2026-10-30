@@ -1,11 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Auralis Med Spa — Android APK Build Pipeline
 #
-# Builds production (release-signed, installable) APKs for both Expo apps:
-#   • apps/staff-mobile   → Auralis Staff   (com.auralis.staff)
-#   • apps/patient-mobile → Auralis Patient (com.auralis.patient)
+# Builds the single, unified Auralis app (staff + patient in one):
+#   • apps/auralis → Auralis (com.auralis.app)
 #
-# Flow per app:  bun install → expo prebuild (android) → gradlew assembleRelease
+# Role selection happens inside the app: "Continue as Staff" (credentials
+# sign-in, provisioned accounts) or "Continue as Patient" (sign-in + sign-up).
+#
+# Flow:  bun install → expo prebuild (android) → gradlew assembleRelease
 # The Expo template signs release builds with the generated debug keystore, so
 # the APK installs out of the box (swap in a Play keystore for store deploys).
 #
@@ -13,13 +15,13 @@
 #   • workflow_dispatch  (manual / API)  — optional GitHub Release upload
 #   • push to main       (only when apps/** or this file changes)
 # ─────────────────────────────────────────────────────────────────────────────
-name: Build Android APKs
+name: Build Android APK
 
 on:
   workflow_dispatch:
     inputs:
       create_release:
-        description: "Attach APKs to a GitHub Release (apk-latest)"
+        description: "Attach the APK to a GitHub Release (apk-latest)"
         type: boolean
         default: false
   push:
@@ -33,26 +35,18 @@ permissions:
 
 env:
   EXPO_NO_TELEMETRY: "1"
-  # Point the apps at the deployed Auralis web API (set this repo variable to
+  # Point the app at the deployed Auralis web API (set this repo variable to
   # your production URL; falls back to localhost for local dev builds).
   EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'http://localhost:3000' }}
 
 jobs:
   build:
-    name: Build ${{ matrix.label }} APK
+    name: Build Auralis APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - app: staff-mobile
-            label: staff
-          - app: patient-mobile
-            label: patient
     defaults:
       run:
-        working-directory: apps/${{ matrix.app }}
+        working-directory: apps/auralis
 
     steps:
       - name: Checkout
@@ -103,13 +97,13 @@ jobs:
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "dist/auralis-${{ matrix.label }}-v1.0.0.apk"
+             "dist/auralis-v2.0.0.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: auralis-${{ matrix.label }}-apk
-          path: apps/${{ matrix.app }}/dist/*.apk
+          name: auralis-apk
+          path: apps/auralis/dist/*.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -126,7 +120,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download built APKs
+      - name: Download built APK
         uses: actions/download-artifact@v4
         with:
           path: apks
@@ -143,19 +137,24 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-latest
-          name: Auralis Mobile Apps — Latest APKs
+          name: Auralis — Latest Android App
           body: |
-            ## 📱 Auralis Med Spa — Mobile Apps (Android)
+            ## 📱 Auralis Med Spa — Mobile App (Android)
 
-            | App | Package | File |
+            **One app for both worlds** — on first launch you choose:
+
+            | Mode | Access | What's inside |
             |---|---|---|
-            | **Auralis Staff** (clinic team) | `com.auralis.staff` | `auralis-staff-v1.0.0.apk` |
-            | **Auralis Patient** (clients) | `com.auralis.patient` | `auralis-patient-v1.0.0.apk` |
+            | ✨ **Continue as Patient** | Sign in **or sign up** (self-service) | Treatment menu, booking, visits, memberships, Aura AI concierge |
+            | 💼 **Continue as Staff** | Sign in only — accounts are provisioned by the clinic | Today's schedule, check-ins, patient EMR, branch switcher |
+
+            - Package: `com.auralis.app` · Version `2.0.0`
+            - New premium dark-champagne onboarding, new app icon & splash
 
             ### Install
-            1. Download the APK on an Android 7.0+ device
+            1. Download `auralis-v2.0.0.apk` on an Android 7.0+ device
             2. Allow *"Install unknown apps"* for your browser/file manager
-            3. Tap the APK → Install → sign in with your clinic account
+            3. Tap the APK → Install → pick your side
 
             > Release builds are signed with the CI debug keystore — fine for
             > demos and internal distribution. For Google Play, upload with a

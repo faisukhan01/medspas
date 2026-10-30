@@ -58,8 +58,9 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       {/* Nav — dark glass over the cinematic hero */}
       <header className="fixed top-0 inset-x-0 z-40 border-b border-white/10 bg-stone-950/45 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight text-white">
-            <span className="text-amber-400 text-2xl leading-none">✦</span> Auralis
+          <div className="flex items-center gap-2.5">
+            <img src="/icon-preview.png" alt="Auralis app icon" className="size-9 rounded-xl ring-1 ring-white/25 object-cover" />
+            <span className="font-display text-lg font-semibold tracking-[0.2em] text-white">AURALIS</span>
           </div>
           <nav className="hidden md:flex items-center gap-8 text-sm text-white/70">
             <a href="#platform" className="hover:text-amber-300 transition-colors">Platform</a>
@@ -300,8 +301,10 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       {/* Sticky footer (min-h-screen wrapper + mt-auto keeps it pinned) */}
       <footer className="mt-auto border-t border-stone-200 bg-white/70 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-stone-500">
-          <div className="flex items-center gap-2 font-display font-semibold text-stone-800">
-            <span className="text-emerald-700">✦</span> Auralis <span className="font-normal text-stone-400">— MedSpa OS</span>
+          <div className="flex items-center gap-2">
+            <img src="/icon-preview.png" alt="" className="size-6 rounded-md object-cover" />
+            <span className="font-display font-semibold tracking-[0.14em] text-stone-800">AURALIS</span>
+            <span className="font-normal text-stone-400">— MedSpa OS</span>
           </div>
           <p className="text-xs">Demo data is 100% fictional. Verify BAAs & HIPAA eligibility before production use.</p>
           <div className="flex items-center gap-5 text-xs">

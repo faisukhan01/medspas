@@ -1,0 +1,27 @@
+import type { Config } from "tailwindcss";
+
+module.exports = {
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: {
+    extend: {
+      colors: {
+        gold: {
+          50: "#fffbeb",
+          100: "#fef3c7",
+          200: "#fde68a",
+          300: "#fcd34d",
+          400: "#fbbf24",
+          500: "#f59e0b",
+          600: "#d97706",
+          700: "#b45309",
+        },
+      },
+      fontFamily: {
+        sans: ["System"],
+        display: ["PlayfairDisplay_600SemiBold", "serif"],
+      },
+    },
+  },
+  plugins: [],
+} satisfies Config;

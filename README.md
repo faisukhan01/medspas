@@ -204,23 +204,23 @@ bun run db:generate && bun run db:push
 # 4 · run the web command center
 bun run dev          # → http://localhost:3000
 
-# mobile apps (separate Expo projects)
-cd apps/staff-mobile   && npm install && npx expo start
-cd apps/patient-mobile && npm install && npx expo start
+# the mobile app (single Expo project — staff + patient in one)
+cd apps/auralis && bun install && npx expo start
 ```
 
 > **Turso offline?** `src/lib/db.ts` auto-falls back to a local SQLite file — the entire product keeps working.
 
 ---
 
-## ⬇️ Download the Android Apps
+## ⬇️ Download the Android App
 
-Prefer a compiled binary? GitHub Actions builds **installable release APKs** on every change to `apps/**` — universal builds (arm64 · armv7 · x86 · x86_64) with the Hermes engine baked in.
+Prefer a compiled binary? GitHub Actions builds an **installable release APK** on every change to `apps/**` — a universal build (arm64 · armv7 · x86 · x86_64) with the Hermes engine baked in. **One app for both worlds:** on first launch you choose *Continue as Patient* (sign in or self-sign-up) or *Continue as Staff* (clinic credentials).
 
 | App | Direct download | Package |
 |-----|-----------------|---------|
-| 🩺 **Auralis Staff** — provider console: today's schedule, patient EMR, appointment moves | **[auralis-staff-v1.0.0.apk](https://github.com/faisukhan01/medspas/releases/download/apk-latest/auralis-staff-v1.0.0.apk)** | `com.auralis.staff` |
-| 💆 **Auralis Patient** — client companion: booking, visits, perks, AI assistant | **[auralis-patient-v1.0.0.apk](https://github.com/faisukhan01/medspas/releases/download/apk-latest/auralis-patient-v1.0.0.apk)** | `com.auralis.patient` |
+| ✨ **Auralis v2** — premium dark-champagne onboarding, staff + patient in one | **[auralis-v2.0.0.apk](https://github.com/faisukhan01/medspas/releases/download/apk-latest/auralis-v2.0.0.apk)** | `com.auralis.app` |
+
+<p align="center"><img src="public/icon-preview.png" alt="Auralis app icon" width="120" /></p>
 
 > 📲 **Install:** download on an Android 7+ device → allow *"Install unknown apps"* → tap the APK. The [**`apk-latest` release**](https://github.com/faisukhan01/medspas/releases/tag/apk-latest) is always refreshed by the pipeline.
 
@@ -228,12 +228,12 @@ Prefer a compiled binary? GitHub Actions builds **installable release APKs** on 
 <summary><b>Build them yourself / re-point the API</b></summary>
 
 ```bash
-cd apps/staff-mobile
+cd apps/auralis
 bun install
 EXPO_PUBLIC_API_URL=https://your-backend.example.com bunx expo run:android --variant release
 ```
 
-Or trigger the pipeline: **Actions → Build Android APKs → Run workflow**. The APKs embed `EXPO_PUBLIC_API_URL` from the repository variable of the same name at build time.
+Or trigger the pipeline: **Actions → Build Android APK → Run workflow**. The APK embeds `EXPO_PUBLIC_API_URL` from the repository variable of the same name at build time.
 
 </details>
 
