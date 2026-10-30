@@ -1,4 +1,5 @@
 // ── Shared component library (staff + patient surfaces) ─────────────────────
+export { AppErrorBoundary } from "./AppErrorBoundary";
 export { Avatar } from "./Avatar";
 export { StatusPill } from "./StatusPill";
 export { PatientStatusPill } from "./PatientStatusPill";

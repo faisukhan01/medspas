@@ -22,7 +22,7 @@ export default function Welcome() {
       <LinearGradient
         colors={["rgba(12,10,9,0.82)", "rgba(12,10,9,0.35)", "rgba(12,10,9,0.55)", "rgba(12,10,9,0.95)"]}
         locations={[0, 0.28, 0.55, 1]}
-        style={{ ...({ position: "absolute", inset: 0 } as const) }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
       <ScrollView
