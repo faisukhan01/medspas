@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { route, getTenantId } from "@/lib/api";
+import { route, bad, getTenantId } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
