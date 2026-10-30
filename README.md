@@ -15,6 +15,7 @@ Web Command Center · Staff Mobile App · Patient Mobile App — powered by a si
 [![Turso](https://img.shields.io/badge/Database-Turso%20·%20libSQL-FFDB00?style=for-the-badge&logo=turso&logoColor=black)](https://turso.tech)
 [![Prisma](https://img.shields.io/badge/ORM-Prisma%206-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://prisma.io)
 [![Expo](https://img.shields.io/badge/Mobile-Expo%20·%20React%20Native-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![Build APKs](https://github.com/faisukhan01/medspas/actions/workflows/build-apk.yml/badge.svg)](https://github.com/faisukhan01/medspas/actions/workflows/build-apk.yml)
 [![Tailwind](https://img.shields.io/badge/UI-Tailwind%204%20·%20shadcn%2Fui-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://ui.shadcn.com)
 
 [![License](https://img.shields.io/badge/License-Proprietary-78716c?style=flat-square)](#-license--compliance)
@@ -42,8 +43,8 @@ Web Command Center · Staff Mobile App · Patient Mobile App — powered by a si
 - [Database — Turso (libSQL)](#-database--turso-libsql)
 - [API Surface — 25 Route Handlers](#-api-surface--25-route-handlers)
 - [Quickstart](#-quickstart)
+- [Download Android APKs](#️-download-the-android-apps)
 - [Demo Accounts](#-demo-accounts)
-- [Mobile Apps](#-mobile-apps)
 - [Build Phases](#-build-phases)
 - [Security & HIPAA Posture](#-security--hipaa-posture)
 - [License & Compliance](#-license--compliance)
@@ -209,6 +210,32 @@ cd apps/patient-mobile && npm install && npx expo start
 ```
 
 > **Turso offline?** `src/lib/db.ts` auto-falls back to a local SQLite file — the entire product keeps working.
+
+---
+
+## ⬇️ Download the Android Apps
+
+Prefer a compiled binary? GitHub Actions builds **installable release APKs** on every change to `apps/**` — universal builds (arm64 · armv7 · x86 · x86_64) with the Hermes engine baked in.
+
+| App | Direct download | Package |
+|-----|-----------------|---------|
+| 🩺 **Auralis Staff** — provider console: today's schedule, patient EMR, appointment moves | **[auralis-staff-v1.0.0.apk](https://github.com/faisukhan01/medspas/releases/download/apk-latest/auralis-staff-v1.0.0.apk)** | `com.auralis.staff` |
+| 💆 **Auralis Patient** — client companion: booking, visits, perks, AI assistant | **[auralis-patient-v1.0.0.apk](https://github.com/faisukhan01/medspas/releases/download/apk-latest/auralis-patient-v1.0.0.apk)** | `com.auralis.patient` |
+
+> 📲 **Install:** download on an Android 7+ device → allow *"Install unknown apps"* → tap the APK. The [**`apk-latest` release**](https://github.com/faisukhan01/medspas/releases/tag/apk-latest) is always refreshed by the pipeline.
+
+<details>
+<summary><b>Build them yourself / re-point the API</b></summary>
+
+```bash
+cd apps/staff-mobile
+bun install
+EXPO_PUBLIC_API_URL=https://your-backend.example.com bunx expo run:android --variant release
+```
+
+Or trigger the pipeline: **Actions → Build Android APKs → Run workflow**. The APKs embed `EXPO_PUBLIC_API_URL` from the repository variable of the same name at build time.
+
+</details>
 
 ---
 
