@@ -28,28 +28,27 @@ async function createDb(): Promise<AuralisDB> {
 
   if (tursoUrl && tursoToken) {
     try {
-      const [{ createClient }, { PrismaLibSQL }] = await Promise.all([
-        import("@libsql/client"),
-        import("@prisma/adapter-libsql"),
-      ]);
+      const { PrismaLibSQL } = await import("@prisma/adapter-libsql");
       const httpUrl = tursoUrl.replace("libsql://", "https://");
-      const libsql = createClient({ url: httpUrl, authToken: tursoToken });
 
       // Health probe — if Turso is unreachable, fall back gracefully.
+      const { createClient } = await import("@libsql/client");
+      const probe = createClient({ url: httpUrl, authToken: tursoToken });
       await Promise.race([
-        libsql.execute("SELECT 1"),
+        probe.execute("SELECT 1"),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error("turso probe timeout")), 4000)
         ),
       ]);
 
-      const adapter = new PrismaLibSQL(libsql as never);
+      // v6.19 factory-style adapter: config object in, client created on connect()
+      const adapter = new PrismaLibSQL({ url: httpUrl, authToken: tursoToken } as never);
       const client = new PrismaClient({ adapter } as never);
       // Verify Prisma can round-trip through the adapter before committing to it
       await Promise.race([
         client.$queryRaw`SELECT 1`,
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("prisma adapter probe timeout")), 6000)
+          setTimeout(() => reject(new Error("prisma adapter probe timeout")), 8000)
         ),
       ]);
       globalForDb.auralisDbMode = "TURSO";
