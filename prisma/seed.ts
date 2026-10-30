@@ -4,11 +4,36 @@
    11 staff, 26 patients, ~200 appointments, full EMR, leads, marketing,
    billing, inventory. 100% synthetic data — safe for public demos.
    Run: bunx prisma db push && bunx tsx prisma/seed.ts  (or: bun prisma/seed.ts)
+
+   IMPORTANT — DateTime consistency:
+   The runtime app talks to Turso through @prisma/adapter-libsql, which
+   serializes DateTime as TEXT (ISO-8601). Plain PrismaClient (SQLite file)
+   stores DateTime as INTEGER ms. Data written by one path is INVISIBLE to
+   date-filtered queries through the other. Therefore this seeder
+   auto-selects the same path the app will use:
+     • TURSO_DATABASE_URL + TURSO_AUTH_TOKEN set  → seeds Turso via adapter
+     • otherwise                                  → seeds the local SQLite file
    ═══════════════════════════════════════════════════════════════════════════ */
 import { PrismaClient } from "@prisma/client";
 import { scryptSync } from "crypto";
 
-const db = new PrismaClient();
+async function makeClient(): Promise<PrismaClient> {
+  const tursoUrl = process.env.TURSO_DATABASE_URL;
+  const tursoToken = process.env.TURSO_AUTH_TOKEN;
+  if (tursoUrl && tursoToken) {
+    const { PrismaLibSQL } = await import("@prisma/adapter-libsql");
+    const adapter = new PrismaLibSQL({
+      url: tursoUrl.replace("libsql://", "https://"),
+      authToken: tursoToken,
+    } as never);
+    console.log("🔗 Seeding TURSO cloud via libSQL adapter (TEXT/ISO DateTime path)…");
+    return new PrismaClient({ adapter } as never);
+  }
+  console.log("💾 Seeding LOCAL SQLite file (default Prisma path)…");
+  return new PrismaClient();
+}
+
+const db = await makeClient();
 
 // ── deterministic RNG (LCG) so re-seeding yields stable data ────────────────
 let seedState = 42;
