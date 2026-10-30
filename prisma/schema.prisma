@@ -1,8 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// ═══════════════════════════════════════════════════════════════════════════
+//  AURALIS — The All-in-One MedSpa Operating System (USA + UK)
+//  Multi-tenant schema: Tenant → Branches → Users → Patients → Everything
+//  Database: Turso (libSQL) via Prisma driver adapter · fallback: SQLite file
+//
+//  NOTE: SQLite/libSQL does not support Prisma enums. Status/role fields are
+//  String columns constrained at application level — see src/lib/constants.ts
+// ═══════════════════════════════════════════════════════════════════════════
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +16,758 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ─────────────────────────────────────────────────────────── Tenancy & Org ──
+
+model Tenant {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  plan           String   @default("GROWTH") // STARTER | GROWTH | SCALE | ENTERPRISE
+  status         String   @default("ACTIVE") // TRIAL | ACTIVE | PAST_DUE | SUSPENDED
+  country        String   @default("US") // US | UK
+  currency       String   @default("USD") // USD | GBP
+  timezone       String   @default("America/New_York")
+  website        String?
+  logoEmoji      String   @default("✦")
+  brandColor     String   @default("#047857")
+  trialEndsAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  branches        Branch[]
+  users           User[]
+  serviceCats     ServiceCategory[]
+  services        Service[]
+  patients        Patient[]
+  appointments    Appointment[]
+  leads           Lead[]
+  campaigns       Campaign[]
+  messageLogs     MessageLog[]
+  membershipPlans MembershipPlan[]
+  packages        ServicePackage[]
+  giftCards       GiftCard[]
+  invoices        Invoice[]
+  payments        Payment[]
+  products        Product[]
+  purchaseOrders  PurchaseOrder[]
+  reviews         Review[]
+  referrals       Referral[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  supportTickets  SupportTicket[]
+  aiInteractions  AiInteraction[]
+  settings        Setting[]
+  consentForms    ConsentFormTemplate[]
 }
 
-model Post {
+model Branch {
+  id         String   @id @default(cuid())
+  tenantId   String
+  name       String
+  code       String   // e.g. NYC-1, LDN-1
+  country    String   @default("US") // US | UK
+  currency   String   @default("USD") // USD | GBP
+  timezone   String   @default("America/New_York")
+  address    String?
+  city       String?
+  state      String?
+  postalCode String?
+  phone      String?
+  email      String?
+  openTime   String   @default("09:00")
+  closeTime  String   @default("19:00")
+  taxRate    Float    @default(0) // sales tax % (US) or VAT % (UK, 20)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       User[]
+  rooms       Room[]
+  staffSch    StaffSchedule[]
+  services    Service[]
+  patients    Patient[]
+  appointments Appointment[]
+  leads       Lead[]
+  invoices    Invoice[]
+  products    Product[]
+  reviews     Review[]
+  memberships Membership[]
+  waitlists   WaitlistEntry[]
+
+  @@index([tenantId])
+}
+
+// ────────────────────────────────────────────────────────────── Staff/Users ──
+
+model User {
+  id             String   @id @default(cuid())
+  tenantId       String
+  branchId       String?  // home branch (can work across)
+  name           String
+  email          String   @unique
+  phone          String?
+  passwordHash   String   // demo seed: scrypt hash of "demo1234"
+  role           String   @default("PROVIDER") // SUPER_ADMIN | OWNER | ADMIN | MANAGER | RECEPTIONIST | PROVIDER | MARKETER
+  title          String?  // e.g. "Aesthetic Nurse Practitioner"
+  specialties    String?  // csv: Botox,Fillers,Laser
+  qualifications String?  // csv: RN,NP,MD
+  licenseNumber  String?
+  commissionRate Float    @default(0) // % of service revenue
+  bio            String?
+  avatarColor    String   @default("#047857")
+  rating         Float    @default(5)
+  mfaEnabled     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch        Branch?         @relation(fields: [branchId], references: [id])
+  schedules     StaffSchedule[]
+  appointments  Appointment[]   @relation("ProviderAppointments")
+  treatments    TreatmentRecord[]
+  assignedLeads Lead[]          @relation("AssignedLeads")
+  authoredNotes ClinicalNote[]  @relation("NoteAuthor")
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  invoices      Invoice[]
+
+  @@index([tenantId])
+}
+
+model StaffSchedule {
+  id        String  @id @default(cuid())
+  userId    String
+  branchId  String
+  weekday   Int     // 0=Sun .. 6=Sat
+  startTime String  // "09:00"
+  endTime   String  // "17:00"
+  isActive  Boolean @default(true)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([branchId])
+}
+
+// ───────────────────────────────────────────────────────── Services & Rooms ──
+
+model ServiceCategory {
+  id          String  @id @default(cuid())
+  tenantId    String
+  name        String  // Injectables | Laser | Facials | Body | Wellness
+  description String?
+  colorHex    String  @default("#059669")
+  icon        String  @default("sparkles") // lucide icon name
+  sortOrder   Int     @default(0)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  services Service[]
+
+  @@index([tenantId])
+}
+
+model Service {
+  id            String   @id @default(cuid())
+  tenantId      String
+  branchId      String?  // null = offered at all branches
+  categoryId    String?
+  name          String
+  description   String?
+  durationMin   Int      @default(60)
+  price         Float
+  currency      String   @default("USD")
+  depositAmount Float    @default(0)
+  requiresConsultation Boolean @default(false)
+  category      String?  // denormalized for filters
+  imageQuery    String?  // for asset generation
+  emoji         String   @default("💠")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch       Branch?         @relation(fields: [branchId], references: [id])
+  categoryRef  ServiceCategory? @relation(fields: [categoryId], references: [id])
+  appointments Appointment[]
+
+  @@index([tenantId])
+}
+
+model Room {
+  id       String  @id @default(cuid())
+  branchId String
+  name     String  // "Treatment Room 1", "Laser Suite"
+  type     String  @default("TREATMENT") // TREATMENT | LASER | CONSULT | INJECTABLES
+  capacity Int     @default(1)
+  isActive Boolean @default(true)
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+}
+
+// ─────────────────────────────────────────────────────────────── Patients ──
+
+model Patient {
+  id             String   @id @default(cuid())
+  tenantId       String
+  branchId       String?  // primary branch
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  dob            DateTime?
+  gender         String?
+  address        String?
+  city           String?
+  country        String   @default("US")
+  avatarColor    String   @default("#0d9488")
+  source         String?  // lead source attribution
+  tags           String?  // csv: VIP,Member,High-Spender
+  medicalHistory String?
+  allergies      String?
+  medications    String?
+  skinType       String?  // Fitzpatrick I-VI
+  pregnancyStatus String?
+  emergencyContact String?
+  status         String   @default("ACTIVE") // ACTIVE | INACTIVE | CHURN_RISK
+  consentsSigned Boolean  @default(false)
+  marketingOptIn Boolean  @default(true)
+  lifetimeValue  Float    @default(0)
+  visitCount     Int      @default(0)
+  noShowCount    Int      @default(0)
+  lastVisitAt    DateTime?
+  joinedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch       Branch?          @relation(fields: [branchId], references: [id])
+  appointments Appointment[]
+  treatments   TreatmentRecord[]
+  notes        ClinicalNote[]   @relation("PatientNotes")
+  consents     SignedConsent[]
+  memberships  Membership[]
+  packages     PatientPackage[]
+  invoices     Invoice[]
+  giftCardsBought GiftCard[]    @relation("GiftCardBuyer")
+  reviews      Review[]
+  referrals    Referral[]       @relation("Referrer")
+  messageLogs  MessageLog[]
+  waitlists    WaitlistEntry[]
+
+  @@index([tenantId])
+  @@index([branchId])
+}
+
+// ────────────────────────────────────────────────── EMR: consents & notes ──
+
+model ConsentFormTemplate {
+  id        String  @id @default(cuid())
+  tenantId  String
+  title     String  // "Botox Consent", "Laser Hair Removal Consent"
+  content   String  // markdown body of the consent
+  serviceId String?
+  version   Int     @default(1)
+  isActive  Boolean @default(true)
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  signed SignedConsent[]
+
+  @@index([tenantId])
+}
+
+model SignedConsent {
+  id            String   @id @default(cuid())
+  tenantId      String
+  patientId     String
+  formId        String
+  appointmentId String?
+  signedAt      DateTime @default(now())
+  signatureData String?  // base64 signature or typed name
+  ipAddress     String?
+
+  patient Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  form    ConsentFormTemplate @relation(fields: [formId], references: [id])
+
+  @@index([patientId])
+}
+
+model ClinicalNote {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
+  tenantId  String
+  patientId String
   authorId  String
+  type      String   @default("CONSULT") // INTAKE | CONSULT | POST_TREATMENT | ADMIN
+  content   String
   createdAt DateTime @default(now())
+
+  patient Patient @relation("PatientNotes", fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation("NoteAuthor", fields: [authorId], references: [id])
+
+  @@index([patientId])
+}
+
+model TreatmentRecord {
+  id            String   @id @default(cuid())
+  tenantId      String
+  patientId     String
+  providerId    String
+  appointmentId String?
+  serviceName   String
+  performedAt   DateTime @default(now())
+  areaTreated   String?  // e.g. "Glabella", "Full face"
+  unitsUsed     Float?
+  productLot    String?
+  notes         String?
+  beforePhotoUrl String?
+  afterPhotoUrl  String?
+  followUpDays  Int?
+
+  patient  Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider User    @relation(fields: [providerId], references: [id])
+
+  @@index([patientId])
+  @@index([providerId])
+}
+
+// ─────────────────────────────────────────────────────────── Appointments ──
+
+model Appointment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  branchId      String
+  patientId     String
+  providerId    String
+  serviceId     String
+  roomId        String?
+  startsAt      DateTime
+  endsAt        DateTime
+  status        String   @default("CONFIRMED") // PENDING | CONFIRMED | CHECKED_IN | IN_PROGRESS | COMPLETED | CANCELLED | NO_SHOW | WAITLISTED
+  source        String   @default("ONLINE") // ONLINE | PHONE | WALK_IN | AI_AGENT | STAFF_APP
+  price         Float    @default(0)
+  depositPaid   Boolean  @default(false)
+  depositAmount Float    @default(0)
+  notes         String?
+  cancellationReason String?
+  reminderSent  Boolean  @default(false)
+  checkedInAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  patient  Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  provider User     @relation("ProviderAppointments", fields: [providerId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+
+  @@index([tenantId, startsAt])
+  @@index([branchId, startsAt])
+  @@index([providerId, startsAt])
+  @@index([patientId])
+}
+
+model WaitlistEntry {
+  id            String   @id @default(cuid())
+  branchId      String
+  patientId     String
+  serviceId     String?
+  preferredDate DateTime?
+  preferredTime String?  // "morning" | "afternoon" | "evening" | "17:00"
+  status        String   @default("ACTIVE") // ACTIVE | BOOKED | EXPIRED | CANCELLED
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+}
+
+// ────────────────────────────────────────────────────── Leads & Pipeline ──
+
+model Lead {
+  id             String   @id @default(cuid())
+  tenantId       String
+  branchId       String?
+  name           String
+  email          String?
+  phone          String?
+  source         String   @default("WEBSITE") // WEBSITE | INSTAGRAM | GOOGLE_ADS | FACEBOOK | REFERRAL | WALK_IN | AI_AGENT | EVENT | PRINT
+  status         String   @default("NEW") // NEW | CONTACTED | QUALIFIED | CONSULT_BOOKED | CONVERTED | LOST
+  score          Int      @default(0) // 0-100 AI-lead-score
+  interest       String?  // "Laser hair removal", "Botox"
+  estimatedValue Float    @default(0)
+  assignedToId   String?
+  lastContactAt  DateTime?
+  nextFollowUpAt DateTime?
+  lostReason     String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch     Branch?        @relation(fields: [branchId], references: [id])
+  assignedTo User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  activities LeadActivity[]
+
+  @@index([tenantId, status])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  type      String   // CALL | SMS | EMAIL | NOTE | STATUS_CHANGE | AI
+  content   String
+  createdBy String?  // userId or "AI_AGENT"
+  createdAt DateTime @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+// ─────────────────────────────────────────────── Marketing & Communication ──
+
+model Campaign {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  type           String   @default("EMAIL") // SMS | EMAIL | PROMO | WIN_BACK | REFERRAL | BIRTHDAY | REBOOK
+  segment        String?  // e.g. "Inactive 90+ days", "VIP members"
+  subject        String?
+  content        String
+  status         String   @default("DRAFT") // DRAFT | SCHEDULED | ACTIVE | COMPLETED
+  scheduledAt    DateTime?
+  aiGenerated    Boolean  @default(false)
+  sentCount      Int      @default(0)
+  openedCount    Int      @default(0)
+  clickedCount   Int      @default(0)
+  convertedCount Int      @default(0)
+  revenue        Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model MessageLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  channel   String   // SMS | EMAIL | CALL | CHAT
+  direction String   // INBOUND | OUTBOUND
+  patientId String?
+  leadId    String?
+  subject   String?
+  body      String
+  status    String   @default("SENT") // QUEUED | SENT | DELIVERED | FAILED
+  createdAt DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ──────────────────────────────────────── Memberships, Packages, Gift Cards ──
+
+model MembershipPlan {
+  id           String  @id @default(cuid())
+  tenantId     String
+  name         String  // "Glow Club Gold"
+  description  String?
+  price        Float
+  currency     String  @default("USD")
+  billingCycle String  @default("MONTHLY") // MONTHLY | QUARTERLY | ANNUAL
+  benefits     String? // csv or markdown
+  perksValue   Float   @default(0) // monthly value of included credits
+  isActive     Boolean @default(true)
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+
+  @@index([tenantId])
+}
+
+model Membership {
+  id       String   @id @default(cuid())
+  planId   String
+  patientId String
+  branchId String?
+  status   String   @default("ACTIVE") // ACTIVE | PAUSED | CANCELLED | PAST_DUE
+  startedAt DateTime @default(now())
+  renewsAt  DateTime?
+  pricePaid Float    @default(0)
+
+  plan    MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  patient Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  branch  Branch?        @relation(fields: [branchId], references: [id])
+
+  @@index([patientId])
+}
+
+model ServicePackage {
+  id        String  @id @default(cuid())
+  tenantId  String
+  name      String  // "3x HydraFacial Bundle"
+  serviceIds String? // csv
+  sessions  Int
+  price     Float
+  currency  String  @default("USD")
+  expiryDays Int    @default(365)
+  isActive  Boolean @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model PatientPackage {
+  id        String   @id @default(cuid())
+  patientId String
+  name      String
+  sessionsTotal  Int
+  sessionsUsed   Int    @default(0)
+  price    Float
+  purchasedAt DateTime @default(now())
+  expiresAt DateTime?
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+}
+
+model GiftCard {
+  id            String   @id @default(cuid())
+  tenantId      String
+  code          String   @unique
+  initialAmount Float
+  balance       Float
+  currency      String   @default("USD")
+  buyerPatientId String?
+  status        String   @default("ACTIVE") // ACTIVE | REDEEMED | EXPIRED
+  expiryAt      DateTime?
+  createdAt     DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  buyer  Patient? @relation("GiftCardBuyer", fields: [buyerPatientId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ───────────────────────────────────────────────────── Payments & Billing ──
+
+model Invoice {
+  id            String   @id @default(cuid())
+  tenantId      String
+  branchId      String
+  patientId     String
+  number        String   // INV-2025-0001
+  appointmentId String?
+  items         String   @default("[]") // JSON: [{name, qty, unitPrice}]
+  subtotal      Float    @default(0)
+  discount      Float    @default(0)
+  tax           Float    @default(0)
+  total         Float    @default(0)
+  currency      String   @default("USD")
+  status        String   @default("PAID") // DRAFT | UNPAID | PAID | REFUNDED | PARTIALLY_REFUNDED
+  method        String?  // CARD | CASH | STRIPE | GIFT_CARD | MEMBERSHIP | BANK_TRANSFER
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id])
+  createdById String?
+  payments  Payment[]
+
+  @@index([tenantId])
+  @@index([patientId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  tenantId      String
+  invoiceId     String?
+  amount        Float
+  currency      String   @default("USD")
+  type          String   @default("PAYMENT") // PAYMENT | REFUND | DEPOSIT | SUBSCRIPTION
+  method        String   @default("CARD") // CARD | CASH | STRIPE | GIFT_CARD | MEMBERSHIP | BANK_TRANSFER
+  status        String   @default("SUCCEEDED") // PENDING | SUCCEEDED | FAILED | REFUNDED
+  transactionRef String? // stripe-style ref
+  cardBrand     String?
+  cardLast4     String?
+  createdAt     DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([tenantId])
+}
+
+// ─────────────────────────────────────────────────────────────── Inventory ──
+
+model Product {
+  id               String   @id @default(cuid())
+  tenantId         String
+  branchId         String?
+  name             String
+  sku              String
+  category         String   // Injectables | Skincare | Consumables | Retail
+  supplier         String?
+  costPrice        Float    @default(0)
+  retailPrice      Float    @default(0)
+  stockQty         Int      @default(0)
+  lowStockThreshold Int     @default(10)
+  unit             String   @default("unit")
+  lotNumber        String?
+  expiryAt         DateTime?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([tenantId])
+}
+
+model PurchaseOrder {
+  id        String   @id @default(cuid())
+  tenantId  String
+  branchId  String?
+  supplier  String
+  items     String   @default("[]") // JSON
+  total     Float    @default(0)
+  status    String   @default("DRAFT") // DRAFT | ORDERED | RECEIVED | CANCELLED
+  orderedAt DateTime?
+  receivedAt DateTime?
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ──────────────────────────────────────────────────── Reputation & Growth ──
+
+model Review {
+  id        String   @id @default(cuid())
+  tenantId  String
+  branchId  String?
+  patientId String?
+  rating    Int
+  comment   String?
+  platform  String   @default("INTERNAL") // GOOGLE | INTERNAL | YELP | TRUSTPILOT
+  status    String   @default("NEW") // NEW | PUBLISHED | FLAGGED | RESPONDED
+  response  String?
+  createdAt DateTime @default(now())
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch  Branch?  @relation(fields: [branchId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Referral {
+  id              String   @id @default(cuid())
+  tenantId        String
+  referrerPatientId String
+  referredName    String
+  referredContact String?
+  status          String   @default("INVITED") // INVITED | VISITED | CONVERTED | REWARDED
+  rewardAmount    Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  referrer Patient @relation("Referrer", fields: [referrerPatientId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ──────────────────────────────────────── Platform Ops: audit, AI, support ──
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  action    String   // LOGIN | CREATE_PATIENT | UPDATE_APPOINTMENT | REFUND | EXPORT ...
+  entity    String?  // Patient | Appointment ...
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  title     String
+  body      String
+  type      String   @default("INFO") // INFO | APPOINTMENT | LEAD | PAYMENT | ALERT | AI
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  tenantId  String
+  subject   String
+  message   String
+  status    String   @default("OPEN") // OPEN | PENDING | RESOLVED | CLOSED
+  priority  String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model AiInteraction {
+  id        String   @id @default(cuid())
+  tenantId  String
+  agent     String   // DISCOVERY | FRONT_DESK | BOOKING | ENGAGEMENT | LOYALTY
+  input     String
+  output    String
+  tokensUsed Int     @default(0)
+  meta      String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model Setting {
+  id       String @id @default(cuid())
+  tenantId String
+  key      String
+  value    String @default("{}") // JSON blob
   updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
 }
