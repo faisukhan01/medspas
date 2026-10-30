@@ -75,6 +75,11 @@ jobs:
       - name: Expo prebuild (android)
         run: bunx expo prebuild --platform android --no-install --clean
 
+      - name: Align Kotlin with Compose Compiler 1.5.15 (expo-modules-core ≥2.0.13)
+        run: |
+          sed -i 's/1\.9\.24/1.9.25/g' android/build.gradle
+          grep -n "kotlinVersion" android/build.gradle || true
+
       - name: Tune Gradle for CI runners
         run: |
           sed -i 's/-Xmx2048m/-Xmx4096m/' android/gradle.properties || true
