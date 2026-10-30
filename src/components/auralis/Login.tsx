@@ -1,24 +1,33 @@
 "use client";
 
+// ── Sign in — cinematic, minimal ────────────────────────────────────────────
+// Full-bleed spa imagery + one frosted card. The default view asks for a
+// single tap (pick a persona); the email form stays collapsed behind a
+// single quiet link so the screen carries almost no data.
+
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, LockKeyhole, Sparkles, Stethoscope, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { post } from "./client";
+import {
+  ArrowLeft, ArrowRight, CalendarDays, ChevronDown, Crown, Loader2,
+  Megaphone, ShieldCheck, Stethoscope,
+} from "lucide-react";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "@/lib/constants";
+import { post } from "./client";
+import HeroSlider from "./HeroSlider";
 import { useApp, type BootData, type SafeUser } from "./store";
+
+const PERSONA_ICONS = [Crown, ShieldCheck, CalendarDays, Stethoscope, Megaphone];
 
 export default function Login({ onBack }: { onBack: () => void }) {
   const { setStage, setBoot } = useApp();
   const [email, setEmail] = useState(DEMO_ACCOUNTS[0].email);
   const [password, setPassword] = useState(DEMO_PASSWORD);
+  const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  async function doLogin(em: string, pw: string) {
-    setBusy(true);
+  async function doLogin(em: string, pw: string, key = "form") {
+    setBusy(key);
     setError(null);
     try {
       await post<{ user: SafeUser }>("/api/auth/login", { email: em, password: pw });
@@ -28,98 +37,113 @@ export default function Login({ onBack }: { onBack: () => void }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
   return (
-    <div className="min-h-screen flex bg-[#faf9f7]">
-      {/* Brand panel */}
-      <div className="hidden lg:flex lg:w-[46%] relative overflow-hidden bg-emerald-950 text-white flex-col justify-between p-10">
-        <div className="absolute inset-0 opacity-40" style={{
-          background: "radial-gradient(700px 400px at 90% 10%, rgba(217,119,6,0.35), transparent 60%), radial-gradient(600px 500px at 10% 90%, rgba(16,185,129,0.25), transparent 55%)",
-        }} />
-        <div className="relative">
-          <button onClick={onBack} className="flex items-center gap-2 text-lg font-display font-semibold tracking-tight">
-            <span className="text-amber-400">✦</span> Auralis
-          </button>
-        </div>
-        <div className="relative space-y-6">
-          <motion.blockquote
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
-            className="font-display text-2xl xl:text-3xl leading-snug"
-          >
-            “We replaced five tools with one. The AI front desk books while we sleep —
-            revenue is up 31% this quarter.”
-          </motion.blockquote>
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-amber-500/20 text-amber-300 grid place-items-center font-semibold">AO</div>
-            <div>
-              <p className="text-sm font-medium">Amara Okafor</p>
-              <p className="text-xs text-emerald-200/80">Founder, Auralis Aesthetics Group — LA · NYC · London · Manchester</p>
-            </div>
-          </div>
-        </div>
-        <div className="relative flex items-center gap-6 text-xs text-emerald-200/80">
-          <span className="flex items-center gap-1.5"><Users className="size-3.5" /> 26 patients seeded</span>
-          <span className="flex items-center gap-1.5"><Stethoscope className="size-3.5" /> 11 staff</span>
-          <span className="flex items-center gap-1.5"><Sparkles className="size-3.5" /> 5 AI agents</span>
-        </div>
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-stone-950">
+      <HeroSlider showDots={false} interval={7000} />
+
+      {/* Top bar */}
+      <div className="relative z-10 flex items-center justify-between px-4 sm:px-8 h-16">
+        <button onClick={onBack} className="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight text-white">
+          <span className="text-amber-400 text-xl leading-none">✦</span> Auralis
+        </button>
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md px-3.5 py-1.5 text-xs text-white/80 hover:bg-white/15 transition-colors"
+        >
+          <ArrowLeft className="size-3.5" /> Back to site
+        </button>
       </div>
 
-      {/* Form panel */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      {/* Card */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-4 pb-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
-          className="w-full max-w-md"
+          initial={{ opacity: 0, y: 22, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-sm rounded-3xl border border-white/15 bg-stone-950/55 backdrop-blur-2xl shadow-2xl shadow-black/40 p-7"
         >
-          <button onClick={onBack} className="lg:hidden flex items-center gap-2 text-lg font-display font-semibold mb-8">
-            <span className="text-emerald-700">✦</span> Auralis
-          </button>
-          <h1 className="font-display text-3xl font-semibold text-stone-900">Welcome back</h1>
-          <p className="text-sm text-stone-500 mt-2">
-            Sign in to the MedSpa OS. Demo password: <code className="bg-stone-100 rounded px-1.5 py-0.5 text-xs">demo1234</code>
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400">MedSpa OS</p>
+          <h1 className="mt-2 font-display text-3xl font-semibold text-white">Welcome back.</h1>
+          <p className="mt-1.5 text-sm text-white/60">Tap a persona — the demo fills everything else for you.</p>
 
-          <form className="mt-8 space-y-4" onSubmit={(e) => { e.preventDefault(); doLogin(email, password); }}>
-            <div className="space-y-2">
-              <Label htmlFor="email">Work email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                className="h-11 bg-white" placeholder="you@clinic.com" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                className="h-11 bg-white" required />
-            </div>
-            {error && <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</p>}
-            <Button type="submit" disabled={busy} className="w-full h-11 bg-emerald-700 hover:bg-emerald-800 text-white">
-              {busy ? <Loader2 className="size-4 animate-spin" /> : <LockKeyhole className="size-4" />}
-              Sign in
-            </Button>
-          </form>
-
-          <div className="mt-8">
-            <p className="text-xs font-medium uppercase tracking-wide text-stone-400 mb-3">One-click demo personas</p>
-            <div className="grid gap-2">
-              {DEMO_ACCOUNTS.map((acc) => (
+          {/* One-tap personas */}
+          <div className="mt-6 space-y-2">
+            {DEMO_ACCOUNTS.map((acc, i) => {
+              const PersonaIcon = PERSONA_ICONS[i] ?? Crown;
+              const loading = busy === acc.email;
+              return (
                 <button
                   key={acc.email}
-                  disabled={busy}
-                  onClick={() => doLogin(acc.email, DEMO_PASSWORD)}
-                  className="group flex items-center justify-between rounded-xl border border-stone-200 bg-white px-4 py-3 text-left hover:border-emerald-600/40 hover:shadow-sm transition-all disabled:opacity-50"
+                  disabled={busy !== null}
+                  onClick={() => doLogin(acc.email, DEMO_PASSWORD, acc.email)}
+                  className="group w-full flex items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.06] px-3.5 py-2.5 text-left transition-all hover:bg-white/[0.14] hover:border-amber-400/40 disabled:opacity-50"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-stone-800">{acc.name}</p>
-                    <p className="text-xs text-stone-500">{acc.role}</p>
-                  </div>
-                  <ArrowRight className="size-4 text-stone-300 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all" />
+                  <span className="size-9 shrink-0 rounded-xl bg-amber-400/15 text-amber-300 grid place-items-center group-hover:scale-105 transition-transform">
+                    {loading ? <Loader2 className="size-4 animate-spin" /> : <PersonaIcon className="size-4" />}
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium text-white truncate">{acc.name}</span>
+                    <span className="block text-[11px] text-white/50 truncate">{acc.role}</span>
+                  </span>
+                  <ArrowRight className="size-4 text-white/25 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+
+          {/* Quiet manual sign-in */}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="mt-5 mx-auto flex items-center gap-1 text-[11px] text-white/45 hover:text-white/80 transition-colors"
+          >
+            {showForm ? "Hide" : "Prefer to"} sign in with email
+            <ChevronDown className={`size-3.5 transition-transform ${showForm ? "rotate-180" : ""}`} />
+          </button>
+
+          {showForm && (
+            <motion.form
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="overflow-hidden"
+              onSubmit={(e) => { e.preventDefault(); doLogin(email, password); }}
+            >
+              <div className="pt-5 space-y-3">
+                <input
+                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@clinic.com" aria-label="Work email"
+                  className="w-full h-11 rounded-xl border border-white/15 bg-white/[0.07] px-4 text-sm text-white placeholder-white/35 outline-none focus:border-amber-400/60 focus:bg-white/[0.1] transition-colors"
+                />
+                <input
+                  type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password" aria-label="Password"
+                  className="w-full h-11 rounded-xl border border-white/15 bg-white/[0.07] px-4 text-sm text-white placeholder-white/35 outline-none focus:border-amber-400/60 focus:bg-white/[0.1] transition-colors"
+                />
+                {error && (
+                  <p className="text-xs text-rose-200 bg-rose-500/15 border border-rose-300/25 rounded-xl px-3 py-2">{error}</p>
+                )}
+                <button
+                  type="submit" disabled={busy !== null}
+                  className="w-full h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {busy === "form" ? <Loader2 className="size-4 animate-spin" /> : null} Sign in
+                </button>
+              </div>
+            </motion.form>
+          )}
+
+          {error && !showForm && (
+            <p className="mt-4 text-xs text-rose-200 bg-rose-500/15 border border-rose-300/25 rounded-xl px-3 py-2">{error}</p>
+          )}
         </motion.div>
       </div>
+
+      <p className="relative z-10 pb-5 text-center text-[11px] text-white/40">
+        Demo environment — every patient, invoice and photo is 100% fictional.
+      </p>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AI_AGENTS } from "@/lib/constants";
+import HeroSlider from "./HeroSlider";
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -54,63 +55,66 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
   return (
     <div className="min-h-screen flex flex-col auralis-hero-bg">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-stone-200/60 bg-[#faf9f7]/85 backdrop-blur-md">
+      {/* Nav — dark glass over the cinematic hero */}
+      <header className="fixed top-0 inset-x-0 z-40 border-b border-white/10 bg-stone-950/45 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight text-stone-900">
-            <span className="text-emerald-700 text-2xl leading-none">✦</span> Auralis
+          <div className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight text-white">
+            <span className="text-amber-400 text-2xl leading-none">✦</span> Auralis
           </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-stone-600">
-            <a href="#platform" className="hover:text-emerald-800 transition-colors">Platform</a>
-            <a href="#agents" className="hover:text-emerald-800 transition-colors">AI Agents</a>
-            <a href="#compare" className="hover:text-emerald-800 transition-colors">Why us</a>
-            <a href="#pricing" className="hover:text-emerald-800 transition-colors">Pricing</a>
+          <nav className="hidden md:flex items-center gap-8 text-sm text-white/70">
+            <a href="#platform" className="hover:text-amber-300 transition-colors">Platform</a>
+            <a href="#agents" className="hover:text-amber-300 transition-colors">AI Agents</a>
+            <a href="#compare" className="hover:text-amber-300 transition-colors">Why us</a>
+            <a href="#pricing" className="hover:text-amber-300 transition-colors">Pricing</a>
           </nav>
-          <Button onClick={onEnter} className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-full px-5">
+          <Button onClick={onEnter} className="bg-white hover:bg-stone-100 text-stone-900 rounded-full px-5">
             Open Live Demo <ArrowRight className="size-4" />
           </Button>
         </div>
       </header>
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28 text-center">
-          <motion.div {...fadeUp}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-800">
-              <Globe2 className="size-3.5" /> Built for MedSpas in the USA & United Kingdom
-            </span>
-          </motion.div>
-          <motion.h1 {...fadeUp} className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-stone-900 leading-[1.05]">
-            The Operating System<br />for Modern <span className="italic text-gold-gradient">MedSpas</span>
-          </motion.h1>
-          <motion.p {...fadeUp} className="mt-6 text-lg text-stone-600 max-w-2xl mx-auto">
-            Bookings, clinical records, lead pipelines, AI growth agents, payments and analytics —
-            one elegant platform running every chair, injector and location.
-          </motion.p>
-          <motion.div {...fadeUp} className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button onClick={onEnter} size="lg" className="h-12 px-8 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-base shadow-lg shadow-emerald-900/10">
-              Launch the Live Demo <ArrowRight className="size-4" />
-            </Button>
-            <a href="#agents" className="h-12 px-8 rounded-full inline-flex items-center gap-2 border border-stone-300 bg-white text-stone-700 hover:border-emerald-600/50 transition-colors">
-              <Bot className="size-4 text-emerald-700" /> Meet the AI agents
-            </a>
-          </motion.div>
-          <motion.div {...fadeUp} className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-            {[
-              { v: "34", l: "data models" },
-              { v: "5", l: "AI growth agents" },
-              { v: "4", l: "demo locations" },
-              { v: "2", l: "countries · $ + £" },
-            ].map((s) => (
-              <div key={s.l} className="rounded-2xl border border-stone-200/70 bg-white/70 backdrop-blur px-4 py-5">
-                <p className="font-display text-3xl font-semibold text-emerald-800">{s.v}</p>
-                <p className="text-xs text-stone-500 mt-1">{s.l}</p>
-              </div>
-            ))}
-          </motion.div>
-          <motion.p {...fadeUp} className="mt-10 text-xs uppercase tracking-widest text-stone-400">
-            Research-informed by PatientNow · Zenoti · Zoca · Aesthetic Record · Boulevard
-          </motion.p>
+        {/* Hero — full-bleed cinematic slider */}
+        <section className="relative min-h-[100svh] flex items-center justify-center">
+          <HeroSlider />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-24 md:pt-32 md:pb-28 text-center">
+            <motion.div {...fadeUp} transition={{ duration: 0.55 }}>
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 backdrop-blur-md px-4 py-1.5 text-xs font-medium text-white/90">
+                <Globe2 className="size-3.5 text-amber-400" /> Built for MedSpas in the USA & United Kingdom
+              </span>
+            </motion.div>
+            <motion.h1 {...fadeUp} transition={{ duration: 0.6, delay: 0.08 }} className="mt-6 font-display text-4xl md:text-6xl lg:text-7xl font-semibold tracking-tight text-white leading-[1.05] [text-shadow:0_2px_30px_rgba(0,0,0,0.35)]">
+              The Operating System<br />for Modern <span className="italic text-gold-gradient-light">MedSpas</span>
+            </motion.h1>
+            <motion.p {...fadeUp} transition={{ duration: 0.6, delay: 0.16 }} className="mt-6 text-lg text-white/75 max-w-2xl mx-auto [text-shadow:0_1px_18px_rgba(0,0,0,0.4)]">
+              Bookings, clinical records, lead pipelines, AI growth agents, payments and analytics —
+              one elegant platform running every chair, injector and location.
+            </motion.p>
+            <motion.div {...fadeUp} transition={{ duration: 0.6, delay: 0.24 }} className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button onClick={onEnter} size="lg" className="h-12 px-8 rounded-full bg-amber-500 hover:bg-amber-400 text-amber-950 font-semibold text-base shadow-xl shadow-amber-900/25">
+                Launch the Live Demo <ArrowRight className="size-4" />
+              </Button>
+              <a href="#agents" className="h-12 px-8 rounded-full inline-flex items-center gap-2 border border-white/25 bg-white/5 backdrop-blur-md text-white/90 hover:bg-white/15 transition-colors">
+                <Bot className="size-4 text-amber-400" /> Meet the AI agents
+              </a>
+            </motion.div>
+            <motion.div {...fadeUp} transition={{ duration: 0.6, delay: 0.32 }} className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-3xl mx-auto">
+              {[
+                { v: "34", l: "data models" },
+                { v: "5", l: "AI growth agents" },
+                { v: "4", l: "demo locations" },
+                { v: "2", l: "countries · $ + £" },
+              ].map((s) => (
+                <div key={s.l} className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-md px-4 py-5">
+                  <p className="font-display text-3xl font-semibold text-amber-300">{s.v}</p>
+                  <p className="text-xs text-white/65 mt-1">{s.l}</p>
+                </div>
+              ))}
+            </motion.div>
+            <motion.p {...fadeUp} transition={{ duration: 0.6, delay: 0.4 }} className="mt-10 text-[11px] uppercase tracking-widest text-white/45">
+              Research-informed by PatientNow · Zenoti · Zoca · Aesthetic Record · Boulevard
+            </motion.p>
+          </div>
         </section>
 
         {/* Modules */}

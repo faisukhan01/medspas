@@ -36,13 +36,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <button onClick={() => { setView("dashboard"); onNavigate?.(); }} className="flex items-center gap-2.5 px-5 h-16 shrink-0">
-        <span className="text-2xl leading-none text-amber-400">✦</span>
+        <span className="text-2xl leading-none text-amber-500">✦</span>
         <div className="text-left">
-          <p className="font-display text-lg font-semibold text-white leading-none">Auralis</p>
-          <p className="text-[10px] text-emerald-200/60 uppercase tracking-widest">MedSpa OS</p>
+          <p className="font-display text-lg font-semibold text-stone-900 leading-none">Auralis</p>
+          <p className="text-[10px] text-stone-400 uppercase tracking-widest">MedSpa OS</p>
         </div>
       </button>
-      <nav className="flex-1 overflow-y-auto auralis-dark-scroll px-3 py-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto auralis-light-scroll px-3 py-3 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const active = activeView === item.id;
           return (
@@ -50,27 +50,32 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               key={item.id}
               onClick={() => { setView(item.id); onNavigate?.(); }}
               className={cn(
-                "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
-                active ? "bg-white/10 text-white font-medium" : "text-emerald-100/70 hover:bg-white/5 hover:text-white"
+                "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all",
+                active
+                  ? "bg-stone-900 text-white font-medium shadow-md shadow-stone-900/15"
+                  : "text-stone-500 hover:bg-stone-100 hover:text-stone-900"
               )}
             >
-              <Icon name={item.icon} className={cn("size-4", active ? "text-amber-400" : "text-emerald-300/70")} />
+              <Icon name={item.icon} className={cn("size-4 shrink-0", active ? "text-amber-400" : "text-stone-400")} />
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge && (
-                <span className="rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold px-1.5 py-0.5">{item.badge}</span>
+                <span className={cn(
+                  "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
+                  active ? "bg-amber-400/25 text-amber-300" : "bg-amber-100 text-amber-700"
+                )}>{item.badge}</span>
               )}
             </button>
           );
         })}
       </nav>
-      <div className="p-4 border-t border-white/10 space-y-2">
-        <div className="flex items-center gap-1.5 text-[10px] text-emerald-200/50 px-1">
-          <span className={cn("size-1.5 rounded-full", boot?.dbMode === "TURSO" ? "bg-emerald-400" : "bg-amber-400")} />
+      <div className="p-4 border-t border-stone-100 space-y-2">
+        <div className="flex items-center gap-1.5 text-[10px] text-stone-400 px-1">
+          <span className={cn("size-1.5 rounded-full", boot?.dbMode === "TURSO" ? "bg-emerald-500" : "bg-amber-500")} />
           {boot?.dbMode === "TURSO" ? "Turso cloud connected" : "Local fallback DB"}
         </div>
         <button
           onClick={() => useApp.getState().setStage("landing")}
-          className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-emerald-100/60 hover:text-white hover:bg-white/5 transition-colors"
+          className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-stone-400 hover:text-stone-900 hover:bg-stone-100 transition-colors"
         >
           <Icons.LogOut className="size-3.5" /> Exit to website
         </button>
@@ -93,7 +98,7 @@ export default function Shell({ booting }: { booting: boolean }) {
     return (
       <div className="min-h-screen grid place-items-center bg-stone-50">
         <div className="text-center">
-          <div className="mx-auto size-14 rounded-2xl bg-emerald-950 grid place-items-center mb-4 animate-pulse">
+          <div className="mx-auto size-14 rounded-2xl bg-stone-900 grid place-items-center mb-4 animate-pulse">
             <span className="text-2xl text-amber-400">✦</span>
           </div>
           <p className="font-display text-lg text-stone-700">Loading Auralis…</p>
@@ -113,12 +118,9 @@ export default function Shell({ booting }: { booting: boolean }) {
 
   return (
     <div className="min-h-screen bg-stone-50 flex">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:block w-64 shrink-0 bg-emerald-950 fixed inset-y-0 left-0 z-40">
-        <div className="absolute inset-0 opacity-50 pointer-events-none" style={{ background: "radial-gradient(500px 300px at 100% 0%, rgba(217,119,6,0.15), transparent 60%)" }} />
-        <div className="relative h-full">
-          <SidebarContent />
-        </div>
+      {/* Desktop sidebar — light porcelain, onyx active pill */}
+      <aside className="hidden lg:block w-64 shrink-0 bg-white fixed inset-y-0 left-0 z-40 border-r border-stone-200/80">
+        <div className="h-full"><SidebarContent /></div>
       </aside>
 
       {/* Mobile drawer */}
@@ -128,7 +130,7 @@ export default function Shell({ booting }: { booting: boolean }) {
             <Icons.Menu className="size-4" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0 bg-emerald-950 border-0">
+        <SheetContent side="left" className="w-72 p-0 bg-white border-r border-stone-200">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent onNavigate={() => setMobileNav(false)} />
         </SheetContent>
