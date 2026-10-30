@@ -77,8 +77,8 @@ jobs:
 
       - name: Align Kotlin with Compose Compiler 1.5.15 (expo-modules-core ≥2.0.13)
         run: |
-          sed -i 's/1\.9\.24/1.9.25/g' android/build.gradle
-          grep -n "kotlinVersion" android/build.gradle || true
+          sed -i 's/1\.9\.24/1.9.25/g' android/build.gradle android/gradle.properties
+          grep -rn "1\.9\.24" android/build.gradle android/gradle.properties || echo "✓ no stale kotlin pins"
 
       - name: Tune Gradle for CI runners
         run: |
@@ -89,7 +89,7 @@ jobs:
         run: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace -Pandroid.kotlinVersion=1.9.25
 
       - name: Rename APK
         run: |
