@@ -6,6 +6,7 @@ import { Loader2, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { post } from "./client";
+import { useApp } from "./store";
 import { cn } from "@/lib/utils";
 
 interface Msg { role: "user" | "assistant"; content: string }
